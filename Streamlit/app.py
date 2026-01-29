@@ -5,6 +5,12 @@ import pandas as pd
 import numpy as np
 from streamlit_lottie import st_lottie
 from streamlit_option_menu import option_menu
+import joblib
+from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.ensemble import RandomForestClassifier
 #from pycaret.classification import *
 import base64
 
@@ -74,36 +80,41 @@ if selected == "Home":
 
 
 if selected == "Prediction":
-	st.title("Upload Data")
+    st.title("Upload Loan Data for Prediction")
 
-	data= st.file_uploader("Choose a file")
-	if data is not None:
-		df = pd.read_csv(data, encoding='ISO-8859-1')
-		
-		#Splitting data
+    # Upload file
+    data = st.file_uploader("Upload your CSV file", type=["csv"])
 
-		train_data = df.sample(frac=0.9, random_state=123)
-		test_data = df.drop(train_data.index)
-		test_data.reset_index(drop=True, inplace=True)
+    if data is not None:
+        df = pd.read_csv(data)
 
-		st.subheader("Train data")
-		st.write(train_data)
+        st.subheader("Uploaded Data")
+        st.write(df.head())
 
-		#classify = setup(data=train_data, target='Churn',
-            #transformation=True,remove_outliers=True,normalize=True,feature_interaction=True, feature_selection=True,
-            #remove_multicollinearity=True,fix_imbalance=True,silent=True, session_id=123)
+        # Load the pipeline
+        import joblib
+        pipeline = joblib.load("loan_pipeline.pkl")
 
-		#best_model = compare_models()
-		#tuned_model = tune_model(best_model, optimize='AUC')
-		#finalize_model(tuned_model)
+        # Predict
+        predictions = pipeline.predict(df)
+        probabilities = pipeline.predict_proba(df)[:, 1]
 
-		st.subheader("Test Data")
+        # Prepare output
+        result_df = df.copy()
+        result_df["default_prediction"] = predictions
+        result_df["default_probability"] = probabilities
 
-		loaded_model = load_model("Churn_Model")
+        st.subheader("Prediction Results")
+        st.write(result_df)
 
-		pred = predict_model(loaded_model, data=test_data)
-		st.subheader("Classification")
-		st.write(pred)
+        # Download button
+        csv = result_df.to_csv(index=False).encode("utf-8")
+        st.download_button(
+            label="Download Predictions as CSV",
+            data=csv,
+            file_name="loan_predictions.csv",
+            mime="text/csv"
+        )
 
 
 
