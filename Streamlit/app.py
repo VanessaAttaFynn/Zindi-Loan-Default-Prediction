@@ -22,8 +22,6 @@ import base64
 
 
 
-
-
 with st.sidebar:
 	logo = Image.open("logo.png")
 	st.image(logo)
